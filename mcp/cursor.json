@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "distill": {
+      "url": "https://data.spencermcw.com/mcp?via=examples"
+    }
+  }
+}

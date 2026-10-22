@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "distill": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote@0.14.3", "https://data.spencermcw.com/mcp?via=examples"]
+    }
+  }
+}

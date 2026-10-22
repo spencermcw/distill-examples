@@ -1,0 +1,23 @@
+{
+  "name": "distill-examples-typescript",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Call Distill (https://data.spencermcw.com) from Node: the free tier, x402 payments and agent recipes",
+  "license": "MIT",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "free": "node free.ts",
+    "paid": "node paid.ts",
+    "sales-tax": "node recipes/sales-tax-for-order.ts",
+    "mri": "node recipes/mri-prices-near-zip.ts",
+    "ofac": "node recipes/ofac-check-address.ts",
+    "medicare": "node recipes/medicare-fee.ts",
+    "mcp-check": "node ../mcp/check.ts"
+  },
+  "dependencies": {
+    "@x402/evm": "2.28.0",
+    "@x402/fetch": "2.28.0",
+    "viem": "2.57.3"
+  }
+}
