@@ -2,33 +2,35 @@
 //
 //   node recipes/medicare-fee.ts [code] [zip]
 //
-// Computed by Distill from CMS's quarterly relative value, GPCI and conversion-factor files. A
-// reference price, not what any one patient or plan pays.
-import { ask, DistillError, provenance, run } from '../lib.ts'
+// Computed by Distill from CMS's quarterly relative value, GPCI and conversion-factor files; every
+// amount agrees with CMS's carrier payment files to the cent. A reference price, not what any one
+// patient or plan pays. CPT codes come without the AMA's descriptors.
+import { ask, provenance, run } from '../lib.ts'
+
+type Amount = { amount: string; limiting_charge: string; opps_capped: boolean } | null
 
 type Rate = {
   code: string
+  status_meaning: string
+  priced: boolean
   release: { id: string; effective_from: string }
-  locality: { name: string; state: string }
-  nonfacility: { amount: string | null }
-  facility: { amount: string | null }
+  locality: { name: string; state: string; mac: string; locality: string }
+  location: { matched: string }
+  nonfacility: Amount
+  facility: Amount
 }
+
+const show = (a: Amount) => (a ? `$${a.amount} (limiting charge $${a.limiting_charge}${a.opps_capped ? ', OPPS-capped' : ''})` : 'n/a')
 
 run(async () => {
   const code = process.argv[2] ?? '99213'
   const zip = process.argv[3] ?? '80218'
-  try {
-    const answer = await ask<Rate>('/v1/medicare/pfs/rate', { code, zip })
-    const r = answer.data
-    console.log(`${r.code} at ${zip} (${r.locality.name}, ${r.locality.state}), release ${r.release.id} from ${r.release.effective_from}:`)
-    console.log(`  non-facility (office) $${r.nonfacility.amount ?? 'n/a'}, facility $${r.facility.amount ?? 'n/a'}`)
-    console.log(provenance(answer))
-  } catch (error) {
-    if (error instanceof DistillError && error.status === 404 && error.code === 'not_found') {
-      console.error('The Medicare fee-schedule route is not live on this gateway yet; see /llms.txt for what is.')
-      process.exitCode = 1
-      return
-    }
-    throw error
-  }
+  const answer = await ask<Rate>('/v1/medicare/pfs/rate', { code, zip })
+  const r = answer.data
+  console.log(answer.headline)
+  console.log(`${r.code} at ${zip}: locality ${r.locality.name}, ${r.locality.state} (MAC ${r.locality.mac}, locality ${r.locality.locality}), release ${r.release.id} from ${r.release.effective_from}`)
+  if (!r.priced) console.log(`  not priced: ${r.status_meaning}`)
+  console.log(`  non-facility (office): ${show(r.nonfacility)}`)
+  console.log(`  facility:              ${show(r.facility)}`)
+  console.log(provenance(answer))
 })
