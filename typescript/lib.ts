@@ -15,13 +15,14 @@ import { privateKeyToAccount } from 'viem/accounts'
 
 export const BASE_URL = (process.env.DISTILL_URL ?? 'https://data.spencermcw.com').replace(/\/+$/, '')
 /** Identifies these examples to Distill's coarse traffic classes; never anything about you. */
-export const USER_AGENT = 'distill-examples/0.1 (+https://data.spencermcw.com)'
+export const USER_AGENT = 'distill-examples/0.2 (+https://data.spencermcw.com)'
 
 export const BASE_SEPOLIA = 'eip155:84532'
 export const BASE_MAINNET = 'eip155:8453'
 
 /** The answer envelope every Distill route returns, free or paid. */
 export type Envelope<T = Record<string, unknown>> = {
+  headline: string
   data: T
   sources: { url: string; fetched_at: string; sha256: string; publisher: string; license: string }[]
   as_of: string
@@ -29,6 +30,7 @@ export type Envelope<T = Record<string, unknown>> = {
   method_version: string
   price_paid: { amount: string; asset: string; network: string; tx: string } | null
   notices: string[]
+  view: 'summary' | 'full'
   request_id: string
 }
 
@@ -64,10 +66,11 @@ export function payingNetwork(): string {
 }
 
 /**
- * fetch that pays a 402 on one network only, and never more than DISTILL_MAX_USD for one call.
- * Null without DISTILL_KEY_FILE.
+ * An x402 client that pays on one network only (Base Sepolia unless DISTILL_MAINNET=1) and never
+ * more than DISTILL_MAX_USD for one call. Null without DISTILL_KEY_FILE. Add your own hooks to it
+ * (recipes/screen-payto.ts does) before wrapping fetch with it.
  */
-export function payingFetch(): typeof fetch | null {
+export function payingClient(): x402Client | null {
   const account = loadAccount()
   if (!account) return null
   const network = payingNetwork()
@@ -81,21 +84,27 @@ export function payingFetch(): typeof fetch | null {
   if (network === BASE_MAINNET) {
     console.error(`[distill-examples] paying on Base MAINNET with ${account.address}, at most $${process.env.DISTILL_MAX_USD ?? '0.05'} a call`)
   }
-  return wrapFetchWithPayment(fetch, client) as typeof fetch
+  return client
+}
+
+/** fetch that pays a 402 with `payingClient()`. Null without DISTILL_KEY_FILE. */
+export function payingFetch(): typeof fetch | null {
+  const client = payingClient()
+  return client ? (wrapFetchWithPayment(fetch, client) as typeof fetch) : null
 }
 
 /**
  * Calls a Distill route and returns its envelope. Free tier (header `Distill-Free-Tier: use`) when
- * no key is configured; paid over x402 otherwise.
+ * no key is configured or `free` is set; paid over x402 otherwise.
  */
 export async function ask<T = Record<string, unknown>>(
   path: string,
   params: Record<string, string | number | undefined> = {},
-  options: { body?: unknown } = {},
+  options: { body?: unknown; free?: boolean } = {},
 ): Promise<Envelope<T>> {
   const url = new URL(`${BASE_URL}${path}`)
   for (const [k, v] of Object.entries(params)) if (v !== undefined) url.searchParams.set(k, String(v))
-  const pay = payingFetch()
+  const pay = options.free ? null : payingFetch()
   const headers: Record<string, string> = { 'user-agent': USER_AGENT, accept: 'application/json' }
   if (!pay) headers['Distill-Free-Tier'] = 'use'
   const init: RequestInit = options.body
