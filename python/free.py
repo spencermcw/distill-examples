@@ -1,5 +1,7 @@
 """The free tier from Python, standard library only: no wallet, no key, no signup.
 
+`?free=1` on the URL asks for a free answer (the same as the header `Distill-Free-Tier: use`).
+
     python3 free.py [zip]
 """
 
@@ -10,15 +12,12 @@ import urllib.parse
 import urllib.request
 
 BASE_URL = "https://data.spencermcw.com"
-USER_AGENT = "distill-examples/0.1 (+https://data.spencermcw.com)"
+USER_AGENT = "distill-examples/0.2 (+https://data.spencermcw.com)"
 
 
 def ask(path: str, params: dict) -> dict:
-    url = f"{BASE_URL}{path}?{urllib.parse.urlencode(params)}"
-    request = urllib.request.Request(
-        url,
-        headers={"Distill-Free-Tier": "use", "User-Agent": USER_AGENT, "Accept": "application/json"},
-    )
+    url = f"{BASE_URL}{path}?{urllib.parse.urlencode({**params, 'free': '1'})}"
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
             return json.load(response)

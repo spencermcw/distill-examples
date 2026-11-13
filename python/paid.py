@@ -20,7 +20,7 @@ from x402.http.clients import wrapHttpxWithPayment
 from x402.mechanisms.evm.exact import ExactEvmScheme
 
 BASE_URL = os.environ.get("DISTILL_URL", "https://data.spencermcw.com").rstrip("/")
-USER_AGENT = "distill-examples/0.1 (+https://data.spencermcw.com)"
+USER_AGENT = "distill-examples/0.2 (+https://data.spencermcw.com)"
 NETWORK = "eip155:8453" if os.environ.get("DISTILL_MAINNET") == "1" else "eip155:84532"
 MAX_ATOMIC = int(Decimal(os.environ.get("DISTILL_MAX_USD", "0.05")) * 1_000_000)
 
